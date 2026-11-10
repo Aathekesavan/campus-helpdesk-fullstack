@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # 1. Core Backend Service (Spring Boot + JPA + H2)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: helpdesk-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - MICROSERVICE_NOTIFICATION_URL=http://notification-service:8085/api/notifications/dispatch
+    networks:
+      - helpdesk-net
+    depends_on:
+      - notification-service
+
+  # 2. Autonomous Notification & SLA Microservice (CO-5)
+  notification-service:
+    build:
+      context: ./microservice-notification
+      dockerfile: Dockerfile
+    container_name: helpdesk-notification-service
+    ports:
+      - "8085:8085"
+    networks:
+      - helpdesk-net
+
+  # 3. React Frontend Client (Vite Nginx production bundle)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: helpdesk-frontend
+    ports:
+      - "5173:80"
+    networks:
+      - helpdesk-net
+    depends_on:
+      - backend
+
+networks:
+  helpdesk-net:
+    driver: bridge
